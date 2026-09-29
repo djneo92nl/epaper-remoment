@@ -1,0 +1,11 @@
+.pio/
+.DS_Store
+
+# Local configuration -- copy the .example files and fill in your own
+include/secrets.h
+include/ha_config.h
+
+# Editor / tooling state (PlatformIO regenerates these)
+.vscode/*
+!.vscode/extensions.json
+.claude/

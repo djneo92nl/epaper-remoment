@@ -1,0 +1,95 @@
+#pragma once
+
+// Copy this file to ha_config.h (gitignored) and adjust the entity IDs to
+// your own Home Assistant setup.
+
+// Find entity IDs in Home Assistant under Settings > Devices & Services >
+// Entities, or Developer Tools > States.
+#define HA_CALENDAR_ENTITY_ID "calendar.your_calendar"
+#define HA_WEATHER_ENTITY_ID "weather.home"
+
+#define MAX_CALENDAR_EVENTS 8
+
+#define NOS_FEED_URL "https://feeds.nos.nl/nosnieuwsalgemeen"
+#define TWEAKERS_FEED_URL "https://tweakers.net/feeds/nieuws.xml"
+
+// ---------------------------------------------------------------------------
+// Widgets (src/widgets/). The two bottom slots rotate between these; see
+// widgets.h for the rules deciding what shows when.
+// ---------------------------------------------------------------------------
+
+// The calendar only takes a slot when a meeting starts within this many
+// minutes.
+#define CALENDAR_LEAD_MINUTES 15
+
+// A widget stays on screen at least this many refreshes before it can be
+// rotated out (unless something urgent needs its slot). Only one slot
+// rotates per refresh, so the two slots take turns changing.
+#define WIDGET_MIN_DWELL_REFRESHES 2
+
+// P1 meter
+#define HA_POWER_IMPORT_ENTITY_ID "sensor.electricity_meter_power_consumption_in_watts"
+#define HA_POWER_EXPORT_ENTITY_ID "sensor.electricity_meter_power_production_in_watts"
+#define HA_POWER_TODAY_ENTITY_ID "sensor.daily_power_consumption"
+#define HA_GAS_TODAY_ENTITY_ID "sensor.gas"
+
+// Solar: current output (both arrays are summed) + Forecast.Solar
+#define HA_SOLAR_1_ENTITY_ID "sensor.solar_dak"
+#define HA_SOLAR_2_ENTITY_ID "sensor.solar_aanbouw"
+#define HA_SOLAR_FORECAST_TODAY_ENTITY_ID "sensor.energy_production_today"
+#define HA_SOLAR_FORECAST_REMAINING_ENTITY_ID "sensor.energy_production_today_remaining"
+#define HA_SOLAR_FORECAST_TOMORROW_ENTITY_ID "sensor.energy_production_tomorrow"
+#define HA_SOLAR_PEAK_TIME_ENTITY_ID "sensor.power_highest_peak_time_today"
+
+// Nord Pool dynamic price; its "today" attribute holds the day's prices
+// (hourly or quarter-hourly).
+#define HA_ENERGY_PRICE_ENTITY_ID "sensor.nordpool_kwh_nl_eur_3_10_021"
+
+// Quatt heat pump (entity IDs as created by the Quatt integration)
+#define HA_HEATPUMP_MODE_ENTITY_ID "sensor.heatpump_qc_supervisory_control_mode"
+#define HA_HEATPUMP_HEAT_POWER_ENTITY_ID "sensor.heatpump_heat_power"
+#define HA_HEATPUMP_ELECTRIC_POWER_ENTITY_ID "sensor.heatpump_total_powerinput"
+#define HA_HEATPUMP_COP_ENTITY_ID "sensor.heatpump_total_quatt_cop"
+#define HA_HEATPUMP_OUTSIDE_TEMP_ENTITY_ID "sensor.heatpump_hp1_temperatureoutside"
+#define HA_HEATPUMP_WATER_IN_ENTITY_ID "sensor.heatpump_hp1_temperaturewaterin"
+#define HA_HEATPUMP_WATER_OUT_ENTITY_ID "sensor.heatpump_hp1_temperaturewaterout"
+#define HA_HEATPUMP_ROOM_TEMP_ENTITY_ID "sensor.heatpump_thermostat_room_temperature"
+#define HA_HEATPUMP_ROOM_SETPOINT_ENTITY_ID "sensor.heatpump_thermostat_room_setpoint"
+#define HA_HEATPUMP_BOILER_ENTITY_ID "binary_sensor.heatpump_boiler_heating"
+#define HA_HEATPUMP_BOILER_FLAME_ENTITY_ID "binary_sensor.heatpump_boiler_flame"
+#define HA_HEATPUMP_ENERGY_TODAY_ENTITY_ID "sensor.quatt_energy_2_daily"
+
+// Indoor air (IKEA ALPSTUGA). Above either threshold the widget becomes
+// urgent and takes a slot.
+#define HA_AIR_CO2_ENTITY_ID "sensor.alpstuga_air_quality_monitor_kooldioxide"
+#define HA_AIR_PM25_ENTITY_ID "sensor.alpstuga_air_quality_monitor_pm2_5"
+#define HA_AIR_HUMIDITY_ENTITY_ID "sensor.alpstuga_air_quality_monitor_luchtvochtigheid"
+#define HA_AIR_TEMP_ENTITY_ID "sensor.alpstuga_air_quality_monitor_temperatuur"
+#define HA_AIR_QUALITY_ENTITY_ID "sensor.alpstuga_air_quality_monitor_luchtkwaliteit"
+#define AIR_CO2_URGENT_PPM 1000
+#define AIR_PM25_URGENT_UGM3 25
+
+// Home battery: Victron MultiPlus 12/1200/50-16 (VE.Bus ID 289) with a JK
+// BMS, via the Victron MQTT integration. Entity IDs are the prefix + a
+// per-device part + the value's name.
+#define HA_VICTRON_PREFIX "sensor.victron_mqtt_<gx_id>_"
+#define HA_VICTRON_SYSTEM "system_0_system_"
+#define HA_VICTRON_VEBUS "vebus_289_vebus_"
+#define HA_VICTRON_BATTERY "battery_3_battery_"
+// Below this much charge/discharge the battery counts as idle.
+#define BATTERY_ACTIVE_W 50
+
+#define HA_TODO_ENTITY_ID "todo.shopping_list"
+
+// How often to poll HA and do a full panel refresh. Every update flashes
+// the whole 3-color panel -- there is no usable partial-refresh path on
+// this hardware (confirmed during display bring-up) -- so keep this
+// infrequent.
+#define HA_REFRESH_INTERVAL_MS (15UL * 60UL * 1000UL) // 15 minutes
+
+// POSIX TZ string for local time/DST, used so NTP-derived "today" date
+// range lines up with your local day. Default assumes Netherlands
+// (CET/CEST) -- change if that's wrong for you.
+#define LOCAL_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
+#define NTP_SERVER_1 "pool.ntp.org"
+#define NTP_SERVER_2 "time.nist.gov"
