@@ -10,6 +10,9 @@
 #include "ha_client.h"
 #include "secrets.h"
 #include "weather_icons.h"
+#include "art.h"
+#include "schedule.h"
+#include "web_ui.h"
 #include "widget_scheduler.h"
 #include "widgets/widgets.h"
 
@@ -228,6 +231,31 @@ static void refreshDashboard() {
   }
 
   renderDashboard(weather, slots, localNow);
+  webUiNoteRefreshed(-1);
+}
+
+static void showArt(int index) {
+  Serial.printf("[art] showing %s\n", ART_CATALOG[index].title);
+  display.setRotation(0);
+  display.setFullWindow();
+  display.firstPage();
+  do {
+    display.cp437(true);
+    drawArt(display, index);
+  } while (display.nextPage());
+  webUiNoteRefreshed(index);
+}
+
+static void ensureWiFi() {
+  if (WiFi.status() == WL_CONNECTED) {
+    return;
+  }
+  Serial.println("[wifi] not connected, reconnecting before dashboard refresh...");
+  WiFi.reconnect();
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
+    delay(250);
+  }
 }
 
 static void configModeCallback(WiFiManager *wm) {
@@ -316,6 +344,8 @@ void setup() {
 
   connectWiFi();
   setupOTA();
+  scheduleBegin();
+  webUiBegin(scheduler);
 
   showStatusScreen("WiFi connected", WiFi.localIP().toString());
 
@@ -323,26 +353,71 @@ void setup() {
 
   Serial.println("[boot] bring-up complete");
 
-  refreshDashboard();
+  // The first dashboard/art update happens in loop().
 }
+
+// Checks the schedule every SCHEDULE_CHECK_MS; the dashboard itself
+// refreshes every HA_REFRESH_INTERVAL_MS while it's showing.
+static const unsigned long SCHEDULE_CHECK_MS = 20UL * 1000UL;
 
 void loop() {
   ArduinoOTA.handle();
+  webUiHandle();
 
+  enum Mode { MODE_NONE, MODE_DASHBOARD, MODE_ART };
+  static Mode mode = MODE_NONE;
+  static ScheduleOverride manual = OVERRIDE_NONE;
+  static long period = -1;
+  static unsigned long lastCheck = 0;
   static unsigned long lastRefresh = 0;
 
-  if (millis() - lastRefresh >= HA_REFRESH_INTERVAL_MS) {
-    lastRefresh = millis();
+  bool refreshAsked = webUiTakeRefreshRequest();
+  ScheduleOverride asked = webUiTakeOverrideRequest();
+  if (asked != OVERRIDE_NONE) {
+    manual = asked;
+  }
+  bool due = mode == MODE_NONE || refreshAsked || asked != OVERRIDE_NONE ||
+             millis() - lastCheck >= SCHEDULE_CHECK_MS;
+  if (!due) {
+    return;
+  }
+  lastCheck = millis();
 
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("[wifi] not connected, reconnecting before dashboard refresh...");
-      WiFi.reconnect();
-      unsigned long start = millis();
-      while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
-        delay(250);
-      }
+  // Without a valid clock (NTP failed) there's no schedule: just run the
+  // dashboard.
+  time_t nowEpoch = time(nullptr);
+  struct tm now;
+  localtime_r(&nowEpoch, &now);
+  bool clockValid = nowEpoch > 1700000000;
+
+  // A new scheduled period ends any manual override and, in art mode,
+  // brings the next artwork.
+  bool newPeriod = false;
+  if (clockValid) {
+    long p = schedulePeriodId(now);
+    if (period >= 0 && p != period) {
+      newPeriod = true;
+      manual = OVERRIDE_NONE;
     }
+    period = p;
+  }
 
+  bool wantArt = clockValid && (manual == OVERRIDE_ART ||
+                                (manual == OVERRIDE_NONE && !scheduleDashboardTime(now)));
+
+  if (wantArt) {
+    if (mode != MODE_ART || newPeriod || refreshAsked || asked == OVERRIDE_ART) {
+      showArt(scheduleNextArt());
+      mode = MODE_ART;
+    }
+    return;
+  }
+
+  if (mode != MODE_DASHBOARD || refreshAsked ||
+      millis() - lastRefresh >= HA_REFRESH_INTERVAL_MS) {
+    lastRefresh = millis();
+    mode = MODE_DASHBOARD;
+    ensureWiFi();
     refreshDashboard();
   }
 }

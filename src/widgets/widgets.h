@@ -36,6 +36,7 @@
 class CalendarWidget : public Widget {
  public:
   const char *name() const override { return "calendar"; }
+  const char *label() const override { return "Calendar"; }
   bool fetch() override;
   bool urgent(const struct tm &now) const override;
   int weight(const struct tm &now) const override { return 0; }
@@ -50,6 +51,7 @@ class CalendarWidget : public Widget {
 class RainWidget : public Widget {
  public:
   const char *name() const override { return "rain"; }
+  const char *label() const override { return "Rain"; }
   bool fetch() override;
   bool urgent(const struct tm &now) const override;
   int weight(const struct tm &now) const override { return 3; }
@@ -68,6 +70,7 @@ class RainWidget : public Widget {
 class AirWidget : public Widget {
  public:
   const char *name() const override { return "air"; }
+  const char *label() const override { return "Indoor air"; }
   bool fetch() override;
   bool urgent(const struct tm &now) const override;
   int weight(const struct tm &now) const override { return 1; }
@@ -81,6 +84,7 @@ class AirWidget : public Widget {
 class EnergyPriceWidget : public Widget {
  public:
   const char *name() const override { return "energy-price"; }
+  const char *label() const override { return "Energy price"; }
   bool fetch() override;
   int weight(const struct tm &now) const override;
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
@@ -94,6 +98,7 @@ class EnergyPriceWidget : public Widget {
 class PowerWidget : public Widget {
  public:
   const char *name() const override { return "power"; }
+  const char *label() const override { return "Power"; }
   bool fetch() override;
   int weight(const struct tm &now) const override { return 2; }
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
@@ -105,6 +110,7 @@ class PowerWidget : public Widget {
 class BatteryWidget : public Widget {
  public:
   const char *name() const override { return "battery"; }
+  const char *label() const override { return "Home battery"; }
   bool fetch() override;
   bool urgent(const struct tm &now) const override { return alarmCount_ > 0; }
   int weight(const struct tm &now) const override;
@@ -122,6 +128,7 @@ class BatteryWidget : public Widget {
 class SolarWidget : public Widget {
  public:
   const char *name() const override { return "solar"; }
+  const char *label() const override { return "Solar"; }
   bool fetch() override;
   int weight(const struct tm &now) const override;
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
@@ -134,6 +141,7 @@ class SolarWidget : public Widget {
 class HeatPumpWidget : public Widget {
  public:
   const char *name() const override { return "heat-pump"; }
+  const char *label() const override { return "Heat pump"; }
   bool fetch() override;
   int weight(const struct tm &now) const override { return active() ? 3 : 1; }
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
@@ -153,6 +161,7 @@ class NewsWidget : public Widget {
       : name_(name), caption_(caption), url_(url), weightFn_(weightFn) {}
 
   const char *name() const override { return name_; }
+  const char *label() const override { return caption_; }
   bool fetch() override;
   int weight(const struct tm &now) const override { return weightFn_(now); }
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
@@ -168,6 +177,7 @@ class NewsWidget : public Widget {
 class TodoWidget : public Widget {
  public:
   const char *name() const override { return "todo"; }
+  const char *label() const override { return "To-do"; }
   bool fetch() override;
   int weight(const struct tm &now) const override;
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;

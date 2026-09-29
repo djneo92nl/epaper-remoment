@@ -8,9 +8,22 @@ static const uint32_t MAX_AGE_REFRESHES = 8;
 
 WidgetScheduler::WidgetScheduler(Widget **widgets, int count)
     : widgets_(widgets), count_(min(count, MAX_WIDGETS)) {
+  for (int i = 0; i < MAX_WIDGETS; i++) {
+    enabled_[i] = true;
+  }
   for (int s = 0; s < WIDGET_SLOT_COUNT; s++) {
     slot_[s] = -1;
+    pin_[s] = -1;
   }
+}
+
+int WidgetScheduler::indexOf(const String &name) const {
+  for (int i = 0; i < count_; i++) {
+    if (name == widgets_[i]->name()) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 bool WidgetScheduler::refresh(const struct tm &now, Widget **slotsOut) {
@@ -20,23 +33,41 @@ bool WidgetScheduler::refresh(const struct tm &now, Widget **slotsOut) {
   bool urgent[MAX_WIDGETS];
   bool anyContent = false;
   for (int i = 0; i < count_; i++) {
-    bool hasContent = widgets_[i]->fetch();
-    urgent[i] = hasContent && widgets_[i]->urgent(now);
-    eligible[i] = hasContent && (urgent[i] || widgets_[i]->weight(now) > 0);
-    anyContent |= eligible[i];
+    if (!enabled_[i]) {
+      hasContent_[i] = urgent[i] = eligible[i] = false;
+      Serial.printf("[widgets] %-12s switched off\n", widgets_[i]->name());
+      continue;
+    }
+    hasContent_[i] = widgets_[i]->fetch();
+    urgent[i] = hasContent_[i] && widgets_[i]->urgent(now);
+    eligible[i] = hasContent_[i] && (urgent[i] || widgets_[i]->weight(now) > 0);
+    anyContent |= hasContent_[i];
     Serial.printf("[widgets] %-12s %s%s\n", widgets_[i]->name(),
-                  hasContent ? "has content" : "nothing to show", urgent[i] ? ", URGENT" : "");
+                  hasContent_[i] ? "has content" : "nothing to show",
+                  urgent[i] ? ", URGENT" : "");
   }
 
   int chosen[WIDGET_SLOT_COUNT];
+  bool locked[WIDGET_SLOT_COUNT];
   bool taken[MAX_WIDGETS] = {};
+
+  // Pinned slots: the pinned widget, as long as it has something to show
+  // (regardless of its weight -- e.g. a pinned calendar shows all day).
+  for (int s = 0; s < WIDGET_SLOT_COUNT; s++) {
+    int p = pin_[s];
+    locked[s] = p >= 0 && p < count_ && hasContent_[p] && !taken[p];
+    chosen[s] = locked[s] ? p : -1;
+    if (locked[s]) {
+      taken[p] = true;
+    }
+  }
 
   // Keep what's still eligible, but release the longest-shown non-urgent
   // widget once it has had its minimum time -- only one per refresh.
   int release = -1;
   for (int s = 0; s < WIDGET_SLOT_COUNT; s++) {
     int cur = slot_[s];
-    if (cur >= 0 && eligible[cur] && !urgent[cur] &&
+    if (!locked[s] && cur >= 0 && eligible[cur] && !urgent[cur] &&
         shownFor_[s] >= WIDGET_MIN_DWELL_REFRESHES &&
         (release < 0 || shownFor_[s] > shownFor_[release])) {
       release = s;
@@ -44,34 +75,35 @@ bool WidgetScheduler::refresh(const struct tm &now, Widget **slotsOut) {
   }
   for (int s = 0; s < WIDGET_SLOT_COUNT; s++) {
     int cur = slot_[s];
-    chosen[s] = (cur >= 0 && eligible[cur] && s != release) ? cur : -1;
-    if (chosen[s] >= 0) {
-      taken[chosen[s]] = true;
+    if (!locked[s] && cur >= 0 && eligible[cur] && s != release && !taken[cur]) {
+      chosen[s] = cur;
+      taken[cur] = true;
     }
   }
 
-  // Urgent widgets not yet on screen: take a free slot, else bump the
-  // longest-shown non-urgent one.
+  // Urgent widgets not yet on screen: take a free automatic slot, else
+  // bump the longest-shown non-urgent one.
   for (int i = 0; i < count_; i++) {
     if (!urgent[i] || taken[i]) {
       continue;
     }
     int target = -1;
     for (int s = 0; s < WIDGET_SLOT_COUNT; s++) {
-      if (chosen[s] < 0) {
+      if (!locked[s] && chosen[s] < 0) {
         target = s;
         break;
       }
     }
     if (target < 0) {
       for (int s = 0; s < WIDGET_SLOT_COUNT; s++) {
-        if (!urgent[chosen[s]] && (target < 0 || shownFor_[s] > shownFor_[target])) {
+        if (!locked[s] && !urgent[chosen[s]] &&
+            (target < 0 || shownFor_[s] > shownFor_[target])) {
           target = s;
         }
       }
     }
     if (target < 0) {
-      break; // every slot already holds an urgent widget
+      break; // every automatic slot already holds an urgent widget
     }
     if (chosen[target] >= 0) {
       taken[chosen[target]] = false;
@@ -122,7 +154,9 @@ bool WidgetScheduler::refresh(const struct tm &now, Widget **slotsOut) {
       lastShown_[chosen[s]] = refreshNo_;
     }
     slotsOut[s] = chosen[s] >= 0 ? widgets_[chosen[s]] : nullptr;
-    Serial.printf("[widgets] slot %d: %s\n", s, chosen[s] >= 0 ? widgets_[chosen[s]]->name() : "(empty)");
+    Serial.printf("[widgets] slot %d: %s%s\n", s,
+                  chosen[s] >= 0 ? widgets_[chosen[s]]->name() : "(empty)",
+                  locked[s] ? " (pinned)" : "");
   }
 
   return anyContent;

@@ -9,3 +9,4 @@ include/ha_config.h
 .vscode/*
 !.vscode/extensions.json
 .claude/
+tools/.art_cache/

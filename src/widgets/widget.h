@@ -13,7 +13,9 @@ class Widget {
  public:
   virtual ~Widget() {}
 
+  // Stable id (logs, saved settings) and a human-readable label (web UI).
   virtual const char *name() const = 0;
+  virtual const char *label() const { return name(); }
 
   // Pulls fresh data. Returns true if there is something worth showing --
   // a failed fetch or an empty result just means the widget sits out this

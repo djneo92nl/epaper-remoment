@@ -33,9 +33,8 @@
 #define HA_POWER_TODAY_ENTITY_ID "sensor.daily_power_consumption"
 #define HA_GAS_TODAY_ENTITY_ID "sensor.gas"
 
-// Solar: current output (both arrays are summed) + Forecast.Solar
-#define HA_SOLAR_1_ENTITY_ID "sensor.solar_dak"
-#define HA_SOLAR_2_ENTITY_ID "sensor.solar_aanbouw"
+// Solar: total current output (Enphase Envoy) + Forecast.Solar
+#define HA_SOLAR_POWER_ENTITY_ID "sensor.envoy_<serial>_current_power_production"
 #define HA_SOLAR_FORECAST_TODAY_ENTITY_ID "sensor.energy_production_today"
 #define HA_SOLAR_FORECAST_REMAINING_ENTITY_ID "sensor.energy_production_today_remaining"
 #define HA_SOLAR_FORECAST_TOMORROW_ENTITY_ID "sensor.energy_production_tomorrow"

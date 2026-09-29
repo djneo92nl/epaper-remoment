@@ -5,8 +5,7 @@
 
 static const char *SOLAR_TEMPLATE =
     "{{ {"
-    "'now_w': states('" HA_SOLAR_1_ENTITY_ID "')|float(0)"
-    " + states('" HA_SOLAR_2_ENTITY_ID "')|float(0),"
+    "'now_w': states('" HA_SOLAR_POWER_ENTITY_ID "')|float(0),"
     "'today_kwh': states('" HA_SOLAR_FORECAST_TODAY_ENTITY_ID "')|float(none),"
     "'remaining_kwh': states('" HA_SOLAR_FORECAST_REMAINING_ENTITY_ID "')|float(none),"
     "'tomorrow_kwh': states('" HA_SOLAR_FORECAST_TOMORROW_ENTITY_ID "')|float(none),"

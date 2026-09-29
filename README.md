@@ -15,7 +15,7 @@ something to show.
 | Indoor air | CO₂ / PM2.5 sensor | Urgent above threshold ("Open a window") |
 | Energy price | Nord Pool | Mornings and evenings: price now, 24h bar chart, cheapest 3h window |
 | Power | P1 meter | Grid import/export, usage and gas today |
-| Solar | Inverters + Forecast.Solar | While producing: output now, progress vs. forecast, tomorrow |
+| Solar | Enphase Envoy + Forecast.Solar | While producing: output now, progress vs. forecast, tomorrow |
 | Heat pump | Quatt | More often while heating or on boiler assist |
 | NOS / Tweakers | RSS | Latest headline; breakfast/lunch/evening, work hours |
 | To-do | HA to-do list | Evenings and weekends, when there are open items |
@@ -25,6 +25,53 @@ simply sits out. Each widget stays up for at least two refreshes, and only
 one slot changes per refresh. The rules are documented at the top of
 [`src/widgets/widgets.h`](src/widgets/widgets.h); the scheduler lives in
 [`src/widget_scheduler.cpp`](src/widget_scheduler.cpp).
+
+## Settings page
+
+The device serves a small page at `http://epaper-remoment.local/` (or its
+IP address) where you can:
+
+- switch widgets on or off,
+- pin a widget to the left or right slot (falls back to automatic when it
+  has nothing to show),
+- set the schedule (see below), and
+- refresh, or switch to art or the dashboard right away.
+
+Settings are stored on the device and survive reboots and firmware updates.
+There is no login: anyone on the same network can change what the panel
+shows.
+
+## Schedule and art mode
+
+Outside the dashboard hours (default 07:30–18:00) and on days off (default
+Wednesday, Saturday, Sunday) the panel shows a public-domain artwork instead
+and stops talking to Home Assistant. E-paper keeps its image without power,
+so the art just stays up; it moves to the next piece at every scheduled
+switch.
+
+<p>
+  <img src="art/previews/red-fuji.png" width="49%" alt="Hokusai, Red Fuji, dithered to black/white/red">
+  <img src="art/previews/great-wave.png" width="49%" alt="Hokusai, The Great Wave off Kanagawa, dithered to black/white/red">
+</p>
+
+The artworks are converted ahead of time by
+[`tools/convert_art.py`](tools/convert_art.py): it downloads each work from
+Wikimedia Commons, keeps red only for the parts of the painting that are
+really red, renders everything else as black/white dithering, and writes
+`art/art.bin` (embedded in the firmware) plus previews in `art/previews/`.
+To change the selection, edit `ARTWORKS` in the script and run it:
+
+```sh
+pip install pillow numpy
+python3 tools/convert_art.py
+```
+
+Included: Hokusai (*The Great Wave*, *Red Fuji*), Vermeer (*The
+Milkmaid*), Rembrandt (*The Night Watch*), Van Gogh
+(*The Starry Night*), Mondrian (*Composition II in Red, Blue, and Yellow*),
+Munch (*The Scream*), Toulouse-Lautrec (*Moulin Rouge: La Goulue*),
+Dürer (*Young Hare*) — all public domain, via
+Wikimedia Commons.
 
 ## Hardware
 
