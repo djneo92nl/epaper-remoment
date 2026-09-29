@@ -11,6 +11,9 @@
 //
 //   Calendar      urgent when a meeting starts within CALENDAR_LEAD_MINUTES;
 //                 never otherwise
+//   Rain          only when rain is expected in the next 2 hours; urgent
+//                 when it's dry now and rain starts within
+//                 RAIN_URGENT_LEAD_MINUTES, otherwise 3
 //   Indoor air    urgent above AIR_CO2_URGENT_PPM / AIR_PM25_URGENT_UGM3;
 //                 otherwise 1
 //   Energy price  3 in the morning (6-9) and evening (16-22), when you plan
@@ -42,6 +45,24 @@ class CalendarWidget : public Widget {
   int nextMeetingIndex(const struct tm &now) const;
   CalendarEvent events_[MAX_CALENDAR_EVENTS];
   int count_ = 0;
+};
+
+class RainWidget : public Widget {
+ public:
+  const char *name() const override { return "rain"; }
+  bool fetch() override;
+  bool urgent(const struct tm &now) const override;
+  int weight(const struct tm &now) const override { return 3; }
+  void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
+
+ private:
+  static const int MAX_STEPS = 24; // 2 hours in 5-minute steps
+  bool fetchLocation();
+  int firstRainStep() const;
+  String lat_, lon_;
+  uint8_t level_[MAX_STEPS];
+  String time_[MAX_STEPS];
+  int steps_ = 0;
 };
 
 class AirWidget : public Widget {

@@ -79,6 +79,13 @@
 // Below this much charge/discharge the battery counts as idle.
 #define BATTERY_ACTIVE_W 50
 
+// Rain radar (Buienradar, NL/BE only) for the location of this HA zone --
+// read from HA so no coordinates live in the firmware. The widget shows
+// when rain is expected within the next 2 hours, and becomes urgent when
+// it's dry now but rain starts within RAIN_URGENT_LEAD_MINUTES.
+#define HA_HOME_ZONE_ENTITY_ID "zone.home"
+#define RAIN_URGENT_LEAD_MINUTES 30
+
 #define HA_TODO_ENTITY_ID "todo.shopping_list"
 
 // How often to poll HA and do a full panel refresh. Every update flashes

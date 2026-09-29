@@ -128,6 +128,7 @@ static const Rect SLOT_RECTS[WIDGET_SLOT_COUNT] = {
 
 // Registration order doubles as priority between urgent widgets.
 static CalendarWidget calendarWidget;
+static RainWidget rainWidget;
 static AirWidget airWidget;
 static EnergyPriceWidget energyPriceWidget;
 static PowerWidget powerWidget;
@@ -144,8 +145,9 @@ static NewsWidget tweakersWidget("tweakers", "TWEAKERS", TWEAKERS_FEED_URL,
 static TodoWidget todoWidget;
 
 static Widget *allWidgets[] = {
-    &calendarWidget, &batteryWidget, &airWidget,     &energyPriceWidget, &powerWidget,
-    &solarWidget,    &heatPumpWidget, &nosWidget, &tweakersWidget,    &todoWidget,
+    &calendarWidget, &batteryWidget,  &rainWidget, &airWidget,      &energyPriceWidget,
+    &powerWidget,    &solarWidget,    &heatPumpWidget, &nosWidget, &tweakersWidget,
+    &todoWidget,
 };
 static WidgetScheduler scheduler(allWidgets, sizeof(allWidgets) / sizeof(allWidgets[0]));
 

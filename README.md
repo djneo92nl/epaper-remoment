@@ -11,6 +11,7 @@ something to show.
 |---|---|---|
 | Calendar | HA calendar | Only when a meeting starts within 15 minutes (Google Calendar-style day timeline) |
 | Home battery | Victron MultiPlus + BMS (Victron MQTT integration) | Urgent on any warning/alarm; more often while charging/discharging |
+| Rain | Buienradar radar forecast (NL/BE) at HA's `zone.home` | Only when rain is expected in the next 2 hours; urgent when it starts within 30 minutes |
 | Indoor air | CO₂ / PM2.5 sensor | Urgent above threshold ("Open a window") |
 | Energy price | Nord Pool | Mornings and evenings: price now, 24h bar chart, cheapest 3h window |
 | Power | P1 meter | Grid import/export, usage and gas today |
