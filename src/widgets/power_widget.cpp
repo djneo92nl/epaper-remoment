@@ -12,7 +12,11 @@ static const char *POWER_TEMPLATE =
     "'import_w': states('" HA_POWER_IMPORT_ENTITY_ID "')|float(0),"
     "'export_w': states('" HA_POWER_EXPORT_ENTITY_ID "')|float(0),"
     "'today_kwh': states('" HA_POWER_TODAY_ENTITY_ID "')|float(none),"
-    "'gas_m3': states('" HA_GAS_TODAY_ENTITY_ID "')|float(none)"
+    "'gas_m3': states('" HA_GAS_TODAY_ENTITY_ID "')|float(none),"
+    "'solar_kwh': states('" HA_SOLAR_TODAY_ENTITY_ID "')|float(none),"
+    "'returned_kwh': states('" HA_GRID_RETURNED_TODAY_ENTITY_ID "')|float(none),"
+    "'battery_in_kwh': states('" HA_BATTERY_CHARGED_TODAY_ENTITY_ID "')|float(none),"
+    "'battery_out_kwh': states('" HA_BATTERY_DISCHARGED_TODAY_ENTITY_ID "')|float(none)"
     "} | to_json }}";
 
 bool PowerWidget::fetch() {
@@ -24,6 +28,10 @@ bool PowerWidget::fetch() {
   exportW_ = doc["export_w"] | 0.0f;
   todayKwh_ = doc["today_kwh"] | NAN;
   gasM3_ = doc["gas_m3"] | NAN;
+  solarKwh_ = doc["solar_kwh"] | NAN;
+  returnedKwh_ = doc["returned_kwh"] | NAN;
+  batteryInKwh_ = doc["battery_in_kwh"] | NAN;
+  batteryOutKwh_ = doc["battery_out_kwh"] | NAN;
   return true;
 }
 
@@ -41,6 +49,16 @@ void PowerWidget::render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now)
                   exporting ? GxEPD_RED : GxEPD_BLACK);
   y += 16 + 18;
 
-  y = drawStatRow(gfx, r, y, "Used today", fmtNum(todayKwh_, 1) + " kWh", GxEPD_BLACK);
-  y = drawStatRow(gfx, r, y, "Gas today", fmtNum(gasM3_, 2) + " m3", GxEPD_BLACK);
+  // Today's totals.
+  gfx.setTextSize(1);
+  gfx.setTextColor(GxEPD_BLACK);
+  gfx.setCursor(r.x, y);
+  gfx.print("TODAY");
+  y += 8 + 8;
+  y = drawStatRow(gfx, r, y, "Solar", fmtNum(solarKwh_, 1) + " kWh", GxEPD_BLACK);
+  y = drawStatRow(gfx, r, y, "Grid used", fmtNum(todayKwh_, 1) + " kWh", GxEPD_BLACK);
+  y = drawStatRow(gfx, r, y, "Grid returned", fmtNum(returnedKwh_, 1) + " kWh", GxEPD_BLACK);
+  y = drawStatRow(gfx, r, y, "Battery in/out",
+                  fmtNum(batteryInKwh_, 1) + " / " + fmtNum(batteryOutKwh_, 1) + " kWh", GxEPD_BLACK);
+  y = drawStatRow(gfx, r, y, "Gas", fmtNum(gasM3_, 2) + " m3", GxEPD_BLACK);
 }

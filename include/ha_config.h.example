@@ -32,6 +32,13 @@
 #define HA_POWER_EXPORT_ENTITY_ID "sensor.electricity_meter_power_production_in_watts"
 #define HA_POWER_TODAY_ENTITY_ID "sensor.daily_power_consumption"
 #define HA_GAS_TODAY_ENTITY_ID "sensor.gas"
+// Today's totals for the power widget. Returned and battery in/out are
+// daily Utility Meter helpers (Settings > Helpers > Utility Meter, cycle
+// "daily") on the lifetime meters, since those have no daily sensor.
+#define HA_SOLAR_TODAY_ENTITY_ID "sensor.envoy_<serial>_today_s_energy_production"
+#define HA_GRID_RETURNED_TODAY_ENTITY_ID "sensor.grid_returned_today"
+#define HA_BATTERY_CHARGED_TODAY_ENTITY_ID "sensor.battery_charged_today"
+#define HA_BATTERY_DISCHARGED_TODAY_ENTITY_ID "sensor.battery_discharged_today"
 
 // Solar: total current output (Enphase Envoy) + Forecast.Solar
 #define HA_SOLAR_POWER_ENTITY_ID "sensor.envoy_<serial>_current_power_production"

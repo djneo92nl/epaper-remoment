@@ -14,7 +14,7 @@ something to show.
 | Rain | Buienradar radar forecast (NL/BE) at HA's `zone.home` | Only when rain is expected in the next 2 hours; urgent when it starts within 30 minutes |
 | Indoor air | CO₂ / PM2.5 sensor | Urgent above threshold ("Open a window") |
 | Energy price | Nord Pool | Mornings and evenings: price now, 24h bar chart, cheapest 3h window |
-| Power | P1 meter | Grid import/export, usage and gas today |
+| Power | P1 meter, Envoy, Victron | Grid import/export now; today's solar, grid used/returned, battery in/out and gas |
 | Solar | Enphase Envoy + Forecast.Solar | While producing: output now, progress vs. forecast, tomorrow |
 | Heat pump | Quatt | More often while heating or on boiler assist |
 | NOS / Tweakers | RSS | Latest headline; breakfast/lunch/evening, work hours |

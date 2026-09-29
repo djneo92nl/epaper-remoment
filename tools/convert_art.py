@@ -69,6 +69,12 @@ ARTWORKS = [
      "Albrecht Durer", "Young Hare", "1502", {"gamma": 0.9}),
 ]
 
+# Dither in DOT x DOT blocks. Black/white/red panels don't render fine
+# single-pixel checkerboards cleanly -- the red pigment shows through and
+# dense dither areas get a pink/brown cast even with no red pixels at all.
+# 2x2 dots stay neutral.
+DOT = 1
+
 # How far tones are pushed toward black/white (0 = linear, 1 = full S-curve).
 CONTRAST = 0.8
 
@@ -99,16 +105,16 @@ def fetch(commons_title, dest):
         f.write(resp.read())
 
 
-def fit(img, opts):
+def fit(img, opts, width, height):
     if "crop" in opts:
         l, t, r, b = opts["crop"]
         w, h = img.size
         img = img.crop((int(l * w), int(t * h), int(r * w), int(b * h)))
-    img = ImageOps.contain(img, (WIDTH, HEIGHT), Image.LANCZOS)
+    img = ImageOps.contain(img, (width, height), Image.LANCZOS)
     # Crisp edges survive dithering far better than soft ones.
     img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=110, threshold=2))
-    canvas = Image.new("RGB", (WIDTH, HEIGHT), "white")
-    canvas.paste(img, ((WIDTH - img.width) // 2, (HEIGHT - img.height) // 2))
+    canvas = Image.new("RGB", (width, height), "white")
+    canvas.paste(img, ((width - img.width) // 2, (height - img.height) // 2))
     return canvas, img.size
 
 
@@ -195,10 +201,12 @@ def main():
         src = os.path.join(CACHE, art_id + os.path.splitext(commons)[1].lower())
         print(f"{art_id}: fetching", flush=True)
         fetch(commons, src)
-        img, size = fit(Image.open(src).convert("RGB"), opts)
+        img, size = fit(Image.open(src).convert("RGB"), opts, WIDTH // DOT, HEIGHT // DOT)
         lum, red = channels(img, opts)
-        print(f"{art_id}: dithering {size[0]}x{size[1]}", flush=True)
+        print(f"{art_id}: dithering {size[0]}x{size[1]} in {DOT}x{DOT} dots", flush=True)
         black_mask, red_mask = dither(lum, red)
+        black_mask = black_mask.repeat(DOT, axis=0).repeat(DOT, axis=1)
+        red_mask = red_mask.repeat(DOT, axis=0).repeat(DOT, axis=1)
         entries.append((artist, title, year, len(blob)))
         blob += pack(black_mask) + pack(red_mask)
         preview(black_mask, red_mask, os.path.join(OUT_PREVIEWS, art_id + ".png"))

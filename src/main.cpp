@@ -32,60 +32,38 @@ static const uint16_t CONFIG_PORTAL_TIMEOUT_S = 300; // 5 min
 GxEPD2_3C<EPD_DRIVER_CLASS, EPD_DRIVER_MAX_HEIGHT> display(
     EPD_DRIVER_CLASS(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 
-// Region the uptime line is drawn in.
-static const int16_t UPTIME_X = 20;
-static const int16_t UPTIME_Y = 210;
-
-static void drawTestPattern(const String &statusLine) {
-  Serial.println("[display] first full refresh: start");
-
-  display.setRotation(0);
-  display.setFullWindow();
-  display.firstPage();
-  do {
-    display.fillScreen(GxEPD_WHITE);
-
-    // Border, to confirm full-panel SPI addressing is correct.
-    display.drawRect(4, 4, display.width() - 8, display.height() - 8, GxEPD_BLACK);
-
-    // Filled rectangle in the panel's red plane.
-    display.fillRect(30, 30, 160, 80, GxEPD_RED);
-
-    display.setTextColor(GxEPD_BLACK);
-    display.setTextSize(3);
-    display.setCursor(30, 150);
-    display.print("E-Paper bring-up OK");
-
-    display.setTextSize(2);
-    display.setCursor(30, 190);
-    display.print(statusLine);
-
-    display.setCursor(UPTIME_X, UPTIME_Y + 20);
-    display.printf("Uptime: %lus", millis() / 1000UL);
-  } while (display.nextPage());
-
-  Serial.println("[display] first full refresh: done");
+static void printCentered(const String &text, int16_t y, uint8_t size) {
+  display.setTextSize(size);
+  display.setCursor((display.width() - (int16_t)text.length() * 6 * size) / 2, y);
+  display.print(text);
 }
 
-static void showStatusScreen(const String &line1, const String &line2) {
+// Start-up / status screen: a logo, the name, and what the device is
+// doing (connecting, WiFi setup, OTA update). One full refresh each.
+static void showSplash(const String &status, const String &detail) {
+  Serial.printf("[display] splash: %s\n", status.c_str());
   display.setRotation(0);
   display.setFullWindow();
   display.firstPage();
   do {
     display.fillScreen(GxEPD_WHITE);
-    display.drawRect(4, 4, display.width() - 8, display.height() - 8, GxEPD_BLACK);
+    display.setTextWrap(false);
+    display.cp437(true);
+
+    const int16_t iconSize = 110;
+    drawWeatherIcon(display, "partlycloudy", (display.width() - iconSize) / 2, 70, iconSize);
 
     display.setTextColor(GxEPD_BLACK);
-    display.setTextSize(3);
-    display.setCursor(30, 150);
-    display.print(line1);
+    printCentered("remoment", 205, 6);
+    display.fillRect((display.width() - 80) / 2, 268, 80, 4, GxEPD_RED);
 
-    display.setTextSize(2);
-    display.setCursor(30, 190);
-    display.print(line2);
+    printCentered(status, 305, 2);
+    if (detail.length() > 0) {
+      printCentered(detail, 335, 2);
+    }
 
-    display.setCursor(UPTIME_X, UPTIME_Y + 20);
-    display.printf("Uptime: %lus", millis() / 1000UL);
+    display.setTextSize(1);
+    printCentered("github.com/djneo92nl/epaper-remoment", display.height() - 24, 1);
   } while (display.nextPage());
 }
 
@@ -270,7 +248,7 @@ static void configModeCallback(WiFiManager *wm) {
   Serial.printf("Portal times out after %u seconds if untouched.\n", CONFIG_PORTAL_TIMEOUT_S);
   Serial.println("=================================================");
 
-  showStatusScreen("WiFi setup needed", String("Join: ") + AP_SSID);
+  showSplash("WiFi setup needed", String("Join ") + AP_SSID + ", open 192.168.4.1");
 }
 
 static void connectWiFi() {
@@ -284,7 +262,7 @@ static void connectWiFi() {
   if (!connected) {
     Serial.println("[wifi] config portal timed out without a successful connection.");
     Serial.println("[wifi] restarting in 3s to try again...");
-    showStatusScreen("WiFi setup timed out", "Restarting...");
+    showSplash("WiFi setup timed out", "Restarting...");
     delay(3000);
     ESP.restart();
   }
@@ -305,7 +283,7 @@ static void setupOTA() {
 
   ArduinoOTA.onStart([]() {
     Serial.println("[ota] update starting");
-    showStatusScreen("OTA update", "Uploading...");
+    showSplash("Updating firmware...", "");
   });
   ArduinoOTA.onEnd([]() { Serial.println("[ota] update complete, rebooting"); });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -340,14 +318,15 @@ void setup() {
   display.init(115200, true, 2, false);
   Serial.println("[display] GxEPD2 init(): done");
 
-  drawTestPattern("WiFi: connecting...");
+  showSplash("Connecting to WiFi...", "");
 
   connectWiFi();
   setupOTA();
   scheduleBegin();
   webUiBegin(scheduler);
 
-  showStatusScreen("WiFi connected", WiFi.localIP().toString());
+  // No "connected" screen: the dashboard (or art) follows right away,
+  // which saves a full-panel flash.
 
   syncTime();
 

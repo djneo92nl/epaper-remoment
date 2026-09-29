@@ -104,7 +104,8 @@ class PowerWidget : public Widget {
   void render(Adafruit_GFX &gfx, const Rect &r, const struct tm &now) override;
 
  private:
-  float importW_ = 0, exportW_ = 0, todayKwh_ = NAN, gasM3_ = NAN;
+  float importW_ = 0, exportW_ = 0, todayKwh_ = NAN, gasM3_ = NAN, solarKwh_ = NAN,
+        returnedKwh_ = NAN, batteryInKwh_ = NAN, batteryOutKwh_ = NAN;
 };
 
 class BatteryWidget : public Widget {
