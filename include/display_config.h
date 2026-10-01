@@ -36,9 +36,14 @@
 // If the first full refresh comes out garbled/incorrect (not just "no red
 // showing", which could be a separate issue) rather than a clean image,
 // swap EPD_DRIVER_CLASS below for a custom class modeled on that fix.
+//
+// With stock Z08 the panel worked, but whites came out greyish/dark (the
+// art mode showed it most). So it now uses that fix (lib/GxEPD2_750c_86BF):
+// Z08 with the DKE panel's own init. Back to stock: GxEPD2_750c_Z08.
 // ---------------------------------------------------------------------------
 #include <GxEPD2_3C.h>
-typedef GxEPD2_750c_Z08 EPD_DRIVER_CLASS;
+#include <GxEPD2_750c_86BF.h>
+typedef GxEPD2_750c_86BF EPD_DRIVER_CLASS;
 
 // A full 800x480 buffer for both the black and red planes needs
 // 2 * (800/8) * 480 = 96000 bytes of static RAM, which overflows ESP32
