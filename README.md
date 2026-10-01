@@ -63,13 +63,20 @@ The artworks are converted ahead of time by
 [`tools/convert_art.py`](tools/convert_art.py): it downloads each work from
 Wikimedia Commons, keeps red only for the parts of the painting that are
 really red, renders everything else as black/white dithering, and writes
-`art/art.bin` (embedded in the firmware) plus previews in `art/previews/`.
-To change the selection, edit `ARTWORKS` in the script and run it:
+`art/art.bin` plus previews in `art/previews/`. `art.bin` lives in a
+flash partition of its own, not in the firmware, so firmware updates stay
+small; it holds 9 works. To change the selection, edit `ARTWORKS` in the
+script, run it, and upload the result (a USB `upload` writes it too):
 
 ```sh
 pip install pillow numpy
 python3 tools/convert_art.py
+pio run -e esp32dev -t uploadart                                    # USB
+OTA_PASSWORD=<your password> pio run -e esp32dev_ota -t uploadart   # WiFi
 ```
+
+Then rebuild and upload the firmware as well: `art_catalog.h` (titles and
+offsets) is compiled in.
 
 Included: Hokusai (*The Great Wave*, *Red Fuji*), Vermeer (*The
 Milkmaid*), Rembrandt (*The Night Watch*), Van Gogh
@@ -103,7 +110,7 @@ Wikimedia Commons.
    Every widget's entity IDs live in `ha_config.h`. To drop a widget you
    don't have the hardware for, remove it from `allWidgets` in
    [`src/main.cpp`](src/main.cpp).
-3. Flash over USB:
+3. Flash over USB (firmware and artworks, about 30 s at 921600 baud):
    ```sh
    pio run -e esp32dev -t upload
    ```
@@ -118,6 +125,11 @@ Later updates can go over WiFi:
 ```sh
 OTA_PASSWORD=<your password> pio run -e esp32dev_ota -t upload
 ```
+
+or as a `.bin` upload in the web UI under System
+(`.pio/build/esp32dev/firmware.bin`). Either way the update goes into the
+other of two app slots and the device only switches once it's complete
+and verified, so an interrupted update leaves the old firmware running.
 
 The serial log (115200 baud) shows, per refresh, which widgets had content
 and which ones went into each slot.

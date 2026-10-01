@@ -35,6 +35,8 @@ from PIL import Image, ImageFilter, ImageOps
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "tools", ".art_cache")
 OUT_BIN = os.path.join(ROOT, "art", "art.bin")
+# Size of the "art" partition in partitions.csv: 9 works of 91200 bytes.
+ART_PARTITION_BYTES = 0xD0000
 OUT_HEADER = os.path.join(ROOT, "src", "art_catalog.h")
 OUT_PREVIEWS = os.path.join(ROOT, "art", "previews")
 
@@ -211,6 +213,9 @@ def main():
         blob += pack(black_mask) + pack(red_mask)
         preview(black_mask, red_mask, os.path.join(OUT_PREVIEWS, art_id + ".png"))
 
+    if len(blob) > ART_PARTITION_BYTES:
+        raise SystemExit(f"art.bin is {len(blob)} bytes, the art partition holds "
+                         f"{ART_PARTITION_BYTES}: drop works or grow it in partitions.csv")
     with open(OUT_BIN, "wb") as f:
         f.write(blob)
 

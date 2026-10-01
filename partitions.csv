@@ -1,0 +1,15 @@
+# 4 MB flash: two app slots for OTA, the artworks in a partition of their
+# own (art/art.bin, written raw - not a filesystem), so an app update
+# doesn't carry 800 KB of pictures.
+#
+# nvs and otadata sit where huge_app.csv had them, so settings and saved
+# WiFi survive the switch. The art partition's subtype is spiffs only so
+# ArduinoOTA's "--spiffs" upload finds it (pio run -t uploadart); its
+# offset is ART_OFFSET in extra_script.py.
+#
+# Name,   Type, SubType, Offset,   Size
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x190000,
+app1,     app,  ota_1,   0x1A0000, 0x190000,
+art,      data, spiffs,  0x330000, 0xD0000,

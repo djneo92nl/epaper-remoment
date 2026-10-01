@@ -42,7 +42,7 @@ static void printCentered(const String &text, int16_t y, uint8_t size) {
 }
 
 // Start-up / status screen: a logo, the name, and what the device is
-// doing (connecting, WiFi setup, OTA update). One full refresh each.
+// doing (connecting, WiFi setup). One full refresh each.
 static void showSplash(const String &status, const String &detail) {
   Serial.printf("[display] splash: %s\n", status.c_str());
   display.setRotation(0);
@@ -262,21 +262,23 @@ static void connectWiFi() {
                 gwNetIP().toString().c_str(), gwHostname().c_str());
 }
 
-// Wireless firmware updates (push from `pio run -e esp32dev_ota -t upload`).
-// Note: this board's partition table (huge_app.csv) has only one OTA app
-// slot, so an update overwrites the currently running app in place --
-// there's no second slot to roll back to if a write is interrupted. Keep
-// updates to a stable WiFi connection; a failed write needs a USB re-flash
-// to recover.
+// Wireless updates, pushed with the OTA env: the app
+// (`pio run -e esp32dev_ota -t upload`, into the other app slot, so an
+// interrupted upload leaves the running one intact) or the artworks
+// (`-t uploadart`, straight into the art partition). The web UI can also
+// take an app .bin under System.
 static void setupOTA() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
   // garnet_web already runs mDNS under the device's hostname.
   ArduinoOTA.setMdnsEnabled(false);
   ArduinoOTA.setPassword(OTA_PASSWORD);
 
+  // No splash here: onStart runs before the device connects back to
+  // espota, which gives up after 10 s, and a panel refresh takes ~17 s.
+  // The boot splash after the update's reboot shows instead.
   ArduinoOTA.onStart([]() {
-    Serial.println("[ota] update starting");
-    showSplash("Updating firmware...", "");
+    Serial.println(ArduinoOTA.getCommand() == U_FLASH ? "[ota] firmware update starting"
+                                                      : "[ota] art update starting");
   });
   ArduinoOTA.onEnd([]() { Serial.println("[ota] update complete, rebooting"); });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
