@@ -28,18 +28,22 @@ one slot changes per refresh. The rules are documented at the top of
 
 ## Settings page
 
-The device serves a small page at `http://epaper-remoment.local/` (or its
-IP address) where you can:
+The device serves a settings UI at `http://epaper-dashboard.local/` (or its
+IP address), built with [garnet_web](../garnet_web). Sign in with
+`WEB_PASSWORD` from `secrets.h` (it defaults to `OTA_PASSWORD`); you can
+change it later under System. Under *Dashboard* you can:
 
-- switch widgets on or off,
-- pin a widget to the left or right slot (falls back to automatic when it
-  has nothing to show),
-- set the schedule (see below), and
-- refresh, or switch to art or the dashboard right away.
+- **Panel:** see what's on screen, refresh, or switch to art or the
+  dashboard right away,
+- **Widgets:** switch widgets on or off, and pin a widget to the left or
+  right slot (it falls back to automatic when it has nothing to show),
+- **Schedule:** set the dashboard hours and days off (see below).
+
+garnet_web also provides **Wi-Fi** (scan, up to 5 saved networks, static
+IP) and **System** (hostname, chip info, password, settings
+backup/restore).
 
 Settings are stored on the device and survive reboots and firmware updates.
-There is no login: anyone on the same network can change what the panel
-shows.
 
 ## Schedule and art mode
 
@@ -83,10 +87,16 @@ Wikimedia Commons.
 
 ## Setup
 
-1. Install [PlatformIO](https://platformio.org/).
+1. Install [PlatformIO](https://platformio.org/), and check out
+   [garnet_web](../garnet_web) and [garnet_settings](../garnet_settings)
+   next to this repo (`platformio.ini` links them as `../garnet_web` and
+   `../garnet_settings`). The build uses the
+   [pioarduino](https://github.com/pioarduino/platform-espressif32)
+   platform (Arduino-ESP32 3.x), which PlatformIO downloads on the first
+   build.
 2. Copy the example config files and fill them in:
    ```sh
-   cp include/secrets.h.example include/secrets.h      # HA URL + token, OTA password
+   cp include/secrets.h.example include/secrets.h      # HA URL + token, OTA / web password
    cp include/ha_config.h.example include/ha_config.h  # your entity IDs
    ```
    Every widget's entity IDs live in `ha_config.h`. To drop a widget you
@@ -96,9 +106,11 @@ Wikimedia Commons.
    ```sh
    pio run -e esp32dev -t upload
    ```
-4. On first boot the board opens a WiFi access point `EPaper-Setup`
-   (password `epaper1234`); join it and enter your WiFi credentials at
-   `http://192.168.4.1`.
+4. On first boot, and whenever none of its saved networks can be
+   reached, the board opens an open WiFi access point
+   `Dashboard-XXXX` (the panel shows its name). Join it, sign in with
+   the web password, and pick your network under Wi-Fi. While the access
+   point is up, the board keeps retrying the saved networks.
 
 Later updates can go over WiFi:
 

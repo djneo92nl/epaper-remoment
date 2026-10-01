@@ -7,25 +7,7 @@
 static ScheduleSettings settings;
 static Preferences prefs;
 
-void scheduleBegin() {
-  prefs.begin("schedule", true);
-  settings.enabled = prefs.getBool("enabled", settings.enabled);
-  settings.onMin = prefs.getInt("on", settings.onMin);
-  settings.offMin = prefs.getInt("off", settings.offMin);
-  settings.offDays = prefs.getUChar("days", settings.offDays);
-  prefs.end();
-}
-
 ScheduleSettings &scheduleSettings() { return settings; }
-
-void scheduleSave() {
-  prefs.begin("schedule", false);
-  prefs.putBool("enabled", settings.enabled);
-  prefs.putInt("on", settings.onMin);
-  prefs.putInt("off", settings.offMin);
-  prefs.putUChar("days", settings.offDays);
-  prefs.end();
-}
 
 bool scheduleDashboardTime(const struct tm &now) {
   if (!settings.enabled) {
@@ -51,6 +33,8 @@ long schedulePeriodId(const struct tm &now) {
   return day * 3 + segment;
 }
 
+// Kept in the Schedule group's NVS namespace, next to its fields;
+// garnet_settings ignores keys that aren't fields.
 int scheduleNextArt() {
   prefs.begin("schedule", false);
   int index = prefs.getInt("art", 0) % ART_COUNT;

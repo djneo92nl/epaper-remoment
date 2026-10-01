@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <ArduinoOTA.h>
+#include <Preferences.h>
 #include <SPI.h>
-#include <WiFi.h>
-#include <WiFiManager.h>
+#include <garnet_web.h>
 #include <time.h>
 
 #include "display_config.h"
@@ -23,11 +23,14 @@
 // these sizes; textSize(1) covers the "smaller" ask for news body text
 // directly and predictably instead of guessing another custom point size.
 
-// WiFiManager fallback AP credentials (used only when no WiFi is saved yet,
-// or saved credentials fail to connect).
-static const char *AP_SSID = "EPaper-Setup";
-static const char *AP_PASSWORD = "epaper1234"; // min 8 chars
-static const uint16_t CONFIG_PORTAL_TIMEOUT_S = 300; // 5 min
+// garnet_web: settings UI, WiFi and the setup access point. The name is
+// the UI title, the AP's prefix ("Dashboard-1E08") and the splash title.
+static const char *DEVICE_NAME = "Dashboard";
+
+// The web UI's password until it's changed there (System > Password).
+#ifndef WEB_PASSWORD
+#define WEB_PASSWORD OTA_PASSWORD
+#endif
 
 GxEPD2_3C<EPD_DRIVER_CLASS, EPD_DRIVER_MAX_HEIGHT> display(
     EPD_DRIVER_CLASS(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
@@ -54,7 +57,7 @@ static void showSplash(const String &status, const String &detail) {
     drawWeatherIcon(display, "partlycloudy", (display.width() - iconSize) / 2, 70, iconSize);
 
     display.setTextColor(GxEPD_BLACK);
-    printCentered("remoment", 205, 6);
+    printCentered(DEVICE_NAME, 205, 6);
     display.fillRect((display.width() - 80) / 2, 268, 80, 4, GxEPD_RED);
 
     printCentered(status, 305, 2);
@@ -224,51 +227,39 @@ static void showArt(int index) {
   webUiNoteRefreshed(index);
 }
 
-static void ensureWiFi() {
-  if (WiFi.status() == WL_CONNECTED) {
+// garnet_web picks the hostname from its System group, falling back to
+// "<name>-xxxx". Seed it with OTA_HOSTNAME on first boot so the device is
+// at OTA_HOSTNAME.local (what the OTA env uploads to); it can still be
+// changed in the UI.
+static void seedHostname() {
+  if (gsNamespaceExists("system")) {
     return;
   }
-  Serial.println("[wifi] not connected, reconnecting before dashboard refresh...");
-  WiFi.reconnect();
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
-    delay(250);
-  }
+  Preferences p;
+  p.begin("system", false);
+  p.putString("hostname", OTA_HOSTNAME);
+  p.end();
 }
 
-static void configModeCallback(WiFiManager *wm) {
-  Serial.println();
-  Serial.println("=================================================");
-  Serial.println("WiFi not configured yet (or saved credentials failed).");
-  Serial.println("Connect a phone/laptop to this WiFi network:");
-  Serial.printf("  SSID:     %s\n", wm->getConfigPortalSSID().c_str());
-  Serial.printf("  Password: %s\n", AP_PASSWORD);
-  Serial.println("Then open a browser to: http://192.168.4.1");
-  Serial.println("to enter your home WiFi credentials.");
-  Serial.printf("Portal times out after %u seconds if untouched.\n", CONFIG_PORTAL_TIMEOUT_S);
-  Serial.println("=================================================");
-
-  showSplash("WiFi setup needed", String("Join ") + AP_SSID + ", open 192.168.4.1");
-}
-
+// garnet_web joins the strongest saved network, or opens an open setup AP
+// with a captive portal when none connects (retrying the saved ones every
+// few minutes). Nothing to show without WiFi, so wait here until it's up.
 static void connectWiFi() {
-  WiFiManager wm;
-  wm.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT_S);
-  wm.setAPCallback(configModeCallback);
-
-  Serial.println("[wifi] attempting to connect (or starting config portal if no saved credentials)...");
-  bool connected = wm.autoConnect(AP_SSID, AP_PASSWORD);
-
-  if (!connected) {
-    Serial.println("[wifi] config portal timed out without a successful connection.");
-    Serial.println("[wifi] restarting in 3s to try again...");
-    showSplash("WiFi setup timed out", "Restarting...");
-    delay(3000);
-    ESP.restart();
+  bool portalShown = false;
+  while (gwNetMode() != GwNetMode::WiFi) {
+    gwLoop();
+    if (!portalShown && gwNetMode() == GwNetMode::Portal) {
+      portalShown = true;
+      // Same name garnet_web gives the AP: last 2 MAC bytes.
+      String ap = String(DEVICE_NAME) + "-" + gwChipId().substring(8);
+      Serial.printf("[wifi] no network, setup AP '%s' at http://%s/\n", ap.c_str(),
+                    gwNetIP().toString().c_str());
+      showSplash("WiFi setup needed", "Join " + ap + ", open " + gwNetIP().toString());
+    }
+    delay(10);
   }
-
-  Serial.print("[wifi] connected. IP address: ");
-  Serial.println(WiFi.localIP());
+  Serial.printf("[wifi] connected. IP address: %s, http://%s.local/\n",
+                gwNetIP().toString().c_str(), gwHostname().c_str());
 }
 
 // Wireless firmware updates (push from `pio run -e esp32dev_ota -t upload`).
@@ -279,6 +270,8 @@ static void connectWiFi() {
 // to recover.
 static void setupOTA() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
+  // garnet_web already runs mDNS under the device's hostname.
+  ArduinoOTA.setMdnsEnabled(false);
   ArduinoOTA.setPassword(OTA_PASSWORD);
 
   ArduinoOTA.onStart([]() {
@@ -302,7 +295,7 @@ static void setupOTA() {
   });
 
   ArduinoOTA.begin();
-  Serial.printf("[ota] ready, hostname: %s.local\n", OTA_HOSTNAME);
+  Serial.printf("[ota] ready, hostname: %s.local\n", gwHostname().c_str());
 }
 
 void setup() {
@@ -320,10 +313,15 @@ void setup() {
 
   showSplash("Connecting to WiFi...", "");
 
+  seedHostname();
+  webUiBegin(scheduler);
+  GwConfig cfg;
+  cfg.name = DEVICE_NAME;
+  cfg.defaultPassword = WEB_PASSWORD;
+  gwBegin(cfg);
+
   connectWiFi();
   setupOTA();
-  scheduleBegin();
-  webUiBegin(scheduler);
 
   // No "connected" screen: the dashboard (or art) follows right away,
   // which saves a full-panel flash.
@@ -340,8 +338,8 @@ void setup() {
 static const unsigned long SCHEDULE_CHECK_MS = 20UL * 1000UL;
 
 void loop() {
+  gwLoop();
   ArduinoOTA.handle();
-  webUiHandle();
 
   enum Mode { MODE_NONE, MODE_DASHBOARD, MODE_ART };
   static Mode mode = MODE_NONE;
@@ -394,9 +392,13 @@ void loop() {
 
   if (mode != MODE_DASHBOARD || refreshAsked ||
       millis() - lastRefresh >= HA_REFRESH_INTERVAL_MS) {
+    // WiFi down (garnet_web is reconnecting): try again at the next check.
+    if (gwNetMode() != GwNetMode::WiFi) {
+      Serial.println("[wifi] not connected, skipping dashboard refresh");
+      return;
+    }
     lastRefresh = millis();
     mode = MODE_DASHBOARD;
-    ensureWiFi();
     refreshDashboard();
   }
 }
