@@ -5,7 +5,8 @@
 
 // The dashboard's settings as garnet_settings groups, shown by garnet_web
 // (which also handles WiFi, the setup access point and mDNS):
-//   Panel     what's on screen now + Refresh / Show art / Show dashboard
+//   Panel     what's on screen now, refresh interval, and
+//             Refresh / Show art / Show dashboard
 //   Widgets   switch widgets on or off, pin a widget to a slot
 //   Schedule  dashboard hours and days off (art mode otherwise)
 // Values live in NVS (one namespace per group), so they survive reboots
@@ -14,6 +15,10 @@
 // Registers the groups and applies the stored values to the scheduler and
 // the schedule. Call before gwBegin().
 void webUiBegin(WidgetScheduler &scheduler);
+
+// Panel > Refresh every: minutes between dashboard refreshes, on the clock
+// (a multiple of it past the hour).
+int webUiRefreshMinutes();
 
 // True once after the page asked for a refresh (a save / Refresh now).
 bool webUiTakeRefreshRequest();

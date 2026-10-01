@@ -94,11 +94,6 @@
 
 #define HA_TODO_ENTITY_ID "todo.shopping_list"
 
-// How often to poll HA and do a full panel refresh. Every update flashes
-// the whole 3-color panel -- there is no usable partial-refresh path on
-// this hardware (confirmed during display bring-up) -- so keep this
-// infrequent.
-#define HA_REFRESH_INTERVAL_MS (15UL * 60UL * 1000UL) // 15 minutes
 
 // POSIX TZ string for local time/DST, used so NTP-derived "today" date
 // range lines up with your local day. Default assumes Netherlands

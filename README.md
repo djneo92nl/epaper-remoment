@@ -33,8 +33,9 @@ IP address), built with [garnet_web](../garnet_web). Sign in with
 `WEB_PASSWORD` from `secrets.h` (it defaults to `OTA_PASSWORD`); you can
 change it later under System. Under *Dashboard* you can:
 
-- **Panel:** see what's on screen, refresh, or switch to art or the
-  dashboard right away,
+- **Panel:** see what's on screen, set how often the dashboard
+  refreshes (5–60 minutes, on the clock: every 10 minutes is 10:20,
+  10:30, 10:40, …), refresh, or switch to art or the dashboard right away,
 - **Widgets:** switch widgets on or off, and pin a widget to the left or
   right slot (it falls back to automatic when it has nothing to show),
 - **Schedule:** set the dashboard hours and days off (see below).

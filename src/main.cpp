@@ -333,9 +333,19 @@ void setup() {
   // The first dashboard/art update happens in loop().
 }
 
-// Checks the schedule every SCHEDULE_CHECK_MS; the dashboard itself
-// refreshes every HA_REFRESH_INTERVAL_MS while it's showing.
-static const unsigned long SCHEDULE_CHECK_MS = 20UL * 1000UL;
+// Checks the schedule every SCHEDULE_CHECK_MS, which is also how late a
+// refresh can start after its time.
+static const unsigned long SCHEDULE_CHECK_MS = 1000UL;
+// WiFi down: how long until the next refresh attempt.
+static const unsigned long WIFI_RETRY_MS = 20UL * 1000UL;
+
+// Which refresh interval `now` is in. The dashboard refreshes when this
+// changes, so on the clock: every 10 minutes means 10:20, 10:30, 10:40...
+// (every interval in the web UI divides an hour, and so a day).
+static long refreshSlot(const struct tm &now, int minutes) {
+  long day = (long)now.tm_year * 366 + now.tm_yday;
+  return day * (24 * 60 / minutes) + (now.tm_hour * 60 + now.tm_min) / minutes;
+}
 
 void loop() {
   gwLoop();
@@ -346,7 +356,8 @@ void loop() {
   static ScheduleOverride manual = OVERRIDE_NONE;
   static long period = -1;
   static unsigned long lastCheck = 0;
-  static unsigned long lastRefresh = 0;
+  static long lastSlot = -1;
+  static unsigned long wifiRetryAt = 0;
 
   bool refreshAsked = webUiTakeRefreshRequest();
   ScheduleOverride asked = webUiTakeOverrideRequest();
@@ -390,14 +401,21 @@ void loop() {
     return;
   }
 
-  if (mode != MODE_DASHBOARD || refreshAsked ||
-      millis() - lastRefresh >= HA_REFRESH_INTERVAL_MS) {
-    // WiFi down (garnet_web is reconnecting): try again at the next check.
-    if (gwNetMode() != GwNetMode::WiFi) {
-      Serial.println("[wifi] not connected, skipping dashboard refresh");
+  // Without a clock, the same interval counted from boot.
+  int minutes = webUiRefreshMinutes();
+  long slot = clockValid ? refreshSlot(now, minutes) : (long)(millis() / (minutes * 60000UL));
+  if (mode != MODE_DASHBOARD || refreshAsked || slot != lastSlot) {
+    if (wifiRetryAt != 0 && (long)(millis() - wifiRetryAt) < 0 && !refreshAsked) {
       return;
     }
-    lastRefresh = millis();
+    // WiFi down (garnet_web is reconnecting): try again in a bit.
+    if (gwNetMode() != GwNetMode::WiFi) {
+      Serial.println("[wifi] not connected, skipping dashboard refresh");
+      wifiRetryAt = millis() + WIFI_RETRY_MS;
+      return;
+    }
+    wifiRetryAt = 0;
+    lastSlot = slot;
     mode = MODE_DASHBOARD;
     refreshDashboard();
   }

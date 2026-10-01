@@ -38,6 +38,21 @@ static String slotStr(int slot) {
 static String leftSlotStr() { return slotStr(0); }
 static String rightSlotStr() { return slotStr(1); }
 
+// Refresh every N minutes, on the clock. All divide an hour, so the
+// refreshes land on the same minutes every hour.
+static const char *const REFRESH_OPTIONS[] = {"5 min", "10 min", "15 min",
+                                              "20 min", "30 min", "60 min"};
+static const int REFRESH_MINUTES[] = {5, 10, 15, 20, 30, 60};
+static const int REFRESH_COUNT = sizeof(REFRESH_MINUTES) / sizeof(REFRESH_MINUTES[0]);
+static int refreshMinutes = 15;
+
+static void applyPanel() {
+  int i = gsGetInt("panel", "every");
+  refreshMinutes = REFRESH_MINUTES[i >= 0 && i < REFRESH_COUNT ? i : 2];
+}
+
+static void onPanelSaved(const GsGroup &) { applyPanel(); }
+
 static void refreshNow() { refreshRequested = true; }
 static void artNow() { overrideRequested = OVERRIDE_ART; }
 static void dashboardNow() { overrideRequested = OVERRIDE_DASHBOARD; }
@@ -46,12 +61,15 @@ static const GsField PANEL_FIELDS[] = {
     gsInfo("showing", "Showing", showingStr),
     gsInfo("left", "Left slot", leftSlotStr),
     gsInfo("right", "Right slot", rightSlotStr),
+    gsWithHelp(gsSelect("every", "Refresh every", REFRESH_OPTIONS, REFRESH_COUNT, 2),
+               "On the clock: 15 min is :00, :15, :30, :45"),
     gsButton("refresh", "Refresh now", refreshNow),
     gsWithHelp(gsButton("art", "Show art now", artNow), "Until the next scheduled switch"),
     gsWithHelp(gsButton("dashboard", "Show dashboard now", dashboardNow),
                "Until the next scheduled switch"),
 };
-static const GsGroup PANEL_GROUP = gsGroup("panel", "Panel", "display", PANEL_FIELDS, "Dashboard");
+static const GsGroup PANEL_GROUP =
+    gsWithOnSave(gsGroup("panel", "Panel", "display", PANEL_FIELDS, "Dashboard"), onPanelSaved);
 
 // ---- Widgets -------------------------------------------------------------
 
@@ -183,9 +201,12 @@ void webUiBegin(WidgetScheduler &scheduler) {
   gsRegister(PANEL_GROUP);
   gsRegister(widgetsGroup);
   gsRegister(SCHEDULE_GROUP_DEF);
+  applyPanel();
   applyWidgets();
   applySchedule();
 }
+
+int webUiRefreshMinutes() { return refreshMinutes; }
 
 bool webUiTakeRefreshRequest() {
   bool r = refreshRequested;
