@@ -29,7 +29,7 @@ one slot changes per refresh. The rules are documented at the top of
 ## Settings page
 
 The device serves a settings UI at `http://epaper-dashboard.local/` (or its
-IP address), built with [garnet_web](../garnet_web). Sign in with
+IP address), built with [garnet_web](https://github.com/djneo92nl/garnet_web). Sign in with
 `WEB_PASSWORD` from `secrets.h` (it defaults to `OTA_PASSWORD`); you can
 change it later under System. Under *Dashboard* you can:
 
@@ -95,10 +95,10 @@ Wikimedia Commons.
 
 ## Setup
 
-1. Install [PlatformIO](https://platformio.org/), and check out
-   [garnet_web](../garnet_web) and [garnet_settings](../garnet_settings)
-   next to this repo (`platformio.ini` links them as `../garnet_web` and
-   `../garnet_settings`). The build uses the
+1. Install [PlatformIO](https://platformio.org/). The build fetches
+   [garnet_web](https://github.com/djneo92nl/garnet_web) (and with it
+   [garnet_settings](https://github.com/djneo92nl/garnet_settings)) by
+   itself, and uses the
    [pioarduino](https://github.com/pioarduino/platform-espressif32)
    platform (Arduino-ESP32 3.x), which PlatformIO downloads on the first
    build.
